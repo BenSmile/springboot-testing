@@ -1,7 +1,6 @@
 package com.bkafirongo.springboottesting.repository;
 
 import com.bkafirongo.springboottesting.model.Employee;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,5 +86,22 @@ public class EmployeeRepositoryTests {
         assertThat(employeeInDB.get().getId()).isPositive();
     }
 
+
+    @DisplayName("JUnit test for get employee by email operation")
+    @Test
+    void givenEmployeeEmail_whenFindByEmail_thenEmployeeObject() {
+        // give - precondition or setup
+        Employee employee1 = Employee
+                .builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("email@example.com")
+                .build();
+        employeeRepository.save(employee1);
+        // when - condition or the behaviour that we are going to test
+        Optional<Employee> employeeInDB = employeeRepository.findByEmail("email@example.com");
+        // then -verify
+        assertThat(employeeInDB).isPresent();
+    }
 
 }
