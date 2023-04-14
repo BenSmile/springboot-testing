@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,6 +67,24 @@ public class EmployeeRepositoryTests {
         assertThat(employeeList)
                 .isNotNull()
                 .hasSize(2);
+    }
+
+    @DisplayName("JUnit test for get employee by id operation")
+    @Test
+    void givenEmployeeObject_whenFindByID_thenReturnEmployeeFromDB() {
+        // give - precondition or setup
+        Employee employee1 = Employee
+                .builder()
+                .firstName("John")
+                .lastName("Doe")
+                .email("email@example.com")
+                .build();
+        employee1 = employeeRepository.save(employee1);
+        // when - condition or the behaviour that we are going to test
+        Optional<Employee> employeeInDB = employeeRepository.findById(employee1.getId());
+        // then -verify
+        assertThat(employeeInDB).isPresent();
+        assertThat(employeeInDB.get().getId()).isPositive();
     }
 
 
