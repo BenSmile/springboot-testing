@@ -50,7 +50,6 @@ class EmployeeRepositoryTests {
     @DisplayName("JUnit test for get all employees list")
     @Test
     void givenEmployeeList_whenFindAll_thenReturnEmployeeList() {
-        // given - precondition or setup
         Employee employee2 = getEmployee("jane@employee.com", "Jane", "Doe");
         employeeRepository.save(employee);
         employeeRepository.save(employee2);
