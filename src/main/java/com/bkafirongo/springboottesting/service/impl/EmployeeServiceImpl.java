@@ -19,7 +19,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public Employee saveEmployee(Employee employee) {
 
-        Optional<Employee> optionalEmployee = employeeRepository.findByEmail(employee.getEmail());
+        var optionalEmployee = employeeRepository.findByEmail(employee.getEmail());
 
         if (optionalEmployee.isPresent()) {
             throw new ResourceNotFoundException("Employee already exists with given email address : " + employee.getEmail());
@@ -30,7 +30,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public Employee updateEmployee(Employee employee) {
-        Optional<Employee> optionalEmployee = employeeRepository.findById(employee.getId());
+        var optionalEmployee = employeeRepository.findById(employee.getId());
         if (optionalEmployee.isEmpty()) {
             throw new ResourceNotFoundException("No User found for Id : " + employee.getId());
         }
