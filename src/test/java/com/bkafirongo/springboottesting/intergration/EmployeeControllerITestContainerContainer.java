@@ -1,38 +1,37 @@
-package com.bkafirongo.springboottesting.controller;
+package com.bkafirongo.springboottesting.intergration;
 
+import com.bkafirongo.springboottesting.exception.ResourceNotFoundException;
 import com.bkafirongo.springboottesting.model.Employee;
-import com.bkafirongo.springboottesting.service.EmployeeService;
+import com.bkafirongo.springboottesting.repository.EmployeeRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest
-class EmployeeControllerTest {
+@SpringBootTest(webEnvironment = RANDOM_PORT)
+@AutoConfigureMockMvc
+class EmployeeControllerITestContainerContainer extends AbstractContainerBaseTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
-    private EmployeeService employeeService;
+    @Autowired
+    private EmployeeRepository employeeRepository;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -40,7 +39,8 @@ class EmployeeControllerTest {
     private Employee employee;
 
     @BeforeEach
-    void setup() {
+    void setUp() {
+        employeeRepository.deleteAll();
         employee = Employee
                 .builder()
                 .id(1)
@@ -50,12 +50,11 @@ class EmployeeControllerTest {
                 .build();
     }
 
-    @DisplayName("JUnit test for get all employees")
+    @DisplayName("Integration test for create employee")
     @Test
     void givenEmployeeObject_whenCreateEmployee_thenReturnSavedEmployee() throws Exception {
         // given - precondition or setup
-        given(employeeService.saveEmployee(ArgumentMatchers.any(Employee.class)))
-                .willReturn(employee);
+
         // when - condition or the behaviour that we are going to test
         var response = mockMvc.perform(post("/api/employees")
                 .contentType(APPLICATION_JSON)
@@ -68,12 +67,11 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.email", is(employee.getEmail())));
     }
 
-    // JUnit test for
+    @DisplayName("Integration test for get all employees")
     @Test
     void givenEmployeeList_whenGetAllEmployees_thenReturnEmployeeList() throws Exception {
         // given - precondition or setup
-        given(employeeService.getAllEmployees())
-                .willReturn(List.of(employee));
+        employeeRepository.saveAll(List.of(employee));
         // when - condition or the behaviour that we are going to test
         var response = mockMvc.perform(get("/api/employees"));
         // then -verify the output
@@ -82,15 +80,13 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.size()", is(1)));
     }
 
-    @DisplayName("JUnit test for get employee by id  | Positive scenario")
+    @DisplayName("Integration test for get employee by id  | Positive scenario")
     @Test
     void givenEmployeeId_whenGetEmployeeById_thenEmployeeObject() throws Exception {
         // given - precondition or setup
-        var employeeId = 1L;
-        given(employeeService.getEmployeeById(employeeId))
-                .willReturn(Optional.of(employee));
+        Employee savedEmployee = employeeRepository.save(employee);
         // when - condition or the behaviour that we are going to test
-        var response = mockMvc.perform(get("/api/employees/{id}", employeeId));
+        var response = mockMvc.perform(get("/api/employees/{id}", savedEmployee.getId()));
         // then -verify the output
         response.andDo(print())
                 .andExpect(status().isOk())
@@ -99,13 +95,11 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.email", is(employee.getEmail())));
     }
 
-    @DisplayName("JUnit test for get employee by id  | Negative scenario")
+    @DisplayName("Integration test for get employee by id  | Negative scenario")
     @Test
     void givenEmployeeId_whenGetEmployeeById_thenReturnNotFound() throws Exception {
         // given - precondition or setup
         var employeeId = 1L;
-        given(employeeService.getEmployeeById(employeeId))
-                .willReturn(Optional.empty());
         // when - condition or the behaviour that we are going to test
         var response = mockMvc.perform(get("/api/employees/{id}", employeeId));
         // then -verify the output
@@ -113,34 +107,35 @@ class EmployeeControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @DisplayName("JUnit test for update employee | Positive scenario")
+    @DisplayName("Integration test for update employee | Positive scenario")
     @Test
     void givenEmployeeObject_whenUpdateEmployee_thenEmployeeObject() throws Exception {
         // given - precondition or setup
-        var employeeId = 1L;
-        given(employeeService.getEmployeeById(employeeId))
-                .willReturn(Optional.of(employee));
-        given(employeeService.updateEmployee(any(Employee.class)))
-                .willReturn(employee);
+        var savedEmployee = employeeRepository.save(employee);
+
+        var updatedEmployee = Employee
+                .builder()
+                .firstName("Jane")
+                .lastName("Smith")
+                .email("jane@example.com")
+                .build();
         // when - condition or the behaviour that we are going to test
-        var response = mockMvc.perform(put("/api/employees/{id}", employeeId)
-                .content(objectMapper.writeValueAsString(employee))
+        var response = mockMvc.perform(put("/api/employees/{id}", savedEmployee.getId())
+                .content(objectMapper.writeValueAsString(updatedEmployee))
                 .contentType(APPLICATION_JSON));
         // then -verify the output
         response.andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.firstName", is(employee.getFirstName())))
-                .andExpect(jsonPath("$.lastName", is(employee.getLastName())))
-                .andExpect(jsonPath("$.email", is(employee.getEmail())));
+                .andExpect(jsonPath("$.firstName", is(updatedEmployee.getFirstName())))
+                .andExpect(jsonPath("$.lastName", is(updatedEmployee.getLastName())))
+                .andExpect(jsonPath("$.email", is(updatedEmployee.getEmail())));
     }
 
-    @DisplayName("JUnit test for update employee | Negative scenario")
+    @DisplayName("Integration test for update employee | Negative scenario")
     @Test
     void givenEmployeeObject_whenUpdateEmployee_thenReturnNotFound() throws Exception {
         // given - precondition or setup
         var employeeId = 1L;
-        given(employeeService.getEmployeeById(employeeId))
-                .willReturn(Optional.empty());
         // when - condition or the behaviour that we are going to test
         var response = mockMvc.perform(put("/api/employees/{id}", employeeId)
                 .content(objectMapper.writeValueAsString(employee))
@@ -150,17 +145,27 @@ class EmployeeControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    // JUnit test for
+    @DisplayName("Integration test for delete employee | Positive scenario")
     @Test
     void givenEmployeeId_whenDeleteEmployee_thenReturn200() throws Exception {
         // given - precondition or setup
+        var savedEmployee = employeeRepository.save(employee);
+        // when - condition or the behaviour that we are going to test
+        var response = mockMvc.perform(delete("/api/employees/{id}", savedEmployee.getId()));
+        // then -verify the output
+        response.andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @DisplayName("Integration test for delete employee | Negative scenario")
+    @Test
+    void givenEmployeeId_whenDeleteEmployee_thenReturn400() throws Exception {
+        // given - precondition or setup
         var employeeId = 1L;
-        willDoNothing().given(employeeService)
-                .deleteEmployee(employeeId);
         // when - condition or the behaviour that we are going to test
         var response = mockMvc.perform(delete("/api/employees/{id}", employeeId));
         // then -verify the output
         response.andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(result -> assertTrue(result.getResolvedException() instanceof ResourceNotFoundException));
     }
 }
